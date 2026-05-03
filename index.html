@@ -181,7 +181,14 @@
 /* copy-link */
 .copy-link-btn{display:block;width:100%;box-sizing:border-box;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;background:none;border:1px solid var(--border);border-radius:2px;padding:.5rem .9rem;color:var(--muted);cursor:pointer;transition:border-color .18s,color .18s;text-align:center;margin-top:0;}
 .copy-link-btn:hover{border-color:var(--text);color:var(--text);}
-</style></head><body><div id="cursor"></div><div id="page-overlay"></div><div style="display:none">
+</style><script>
+/* Capture hash before GitHub Pages redirect can strip it */
+(function(){
+  var raw=window.location.hash.replace('#','');
+  if(raw)sessionStorage.setItem('_pf_slug',raw);
+})();
+</script>
+</head><body><div id="cursor"></div><div id="page-overlay"></div><div style="display:none">
 <div id="extra-MIE438">
 
   <div class="detail-section-label">The Device</div>
@@ -438,15 +445,6 @@ function attachHovers(){document.querySelectorAll('a,button,.feat-item,.proj-car
 attachHovers();
 window.addEventListener('scroll',function(){document.getElementById('nav').classList.toggle('scrolled',window.scrollY>30);},{passive:true});
 
-// ── Deep link routing ──────────────────────────────────────────────────────
-function openBySlug(s){
-  var p=PROJECTS.find(function(x){return x.slug===s;});
-  if(p)openDetail(p);
-}
-(function(){
-  var h=window.location.hash.replace('#','');
-  if(h)setTimeout(function(){openBySlug(h);},100);
-})();
 document.addEventListener('click',function(e){
   var btn=e.target.closest('.copy-link-btn');
   if(!btn)return;
@@ -462,6 +460,41 @@ document.addEventListener('click',function(e){
     document.execCommand('copy');document.body.removeChild(ta);
     btn.textContent='Copied!';
     setTimeout(function(){btn.textContent='Copy link';},2000);
+  }
+});
+
+// ── Deep-link routing (GitHub Pages compatible) ──────────────────────────────
+function openBySlug(s){
+  if(!s)return;
+  var p=PROJECTS.find(function(x){return x.slug===s;});
+  if(p)openDetail(p);
+}
+
+// Recover slug from sessionStorage (survives GitHub Pages redirects)
+// OR fall back to reading the hash directly if we're already on the right URL
+function recoverSlug(){
+  var stored=sessionStorage.getItem('_pf_slug');
+  var fromHash=window.location.hash.replace('#','');
+  var slug=fromHash||stored;
+  if(slug){
+    sessionStorage.removeItem('_pf_slug');
+    openBySlug(slug);
+  }
+}
+
+window.addEventListener('load',function(){
+  // Delay long enough for portfolio JS + CSS transitions to initialise
+  setTimeout(recoverSlug, 350);
+});
+
+// Also handle in-page hash changes (browser back/forward)
+window.addEventListener('hashchange',function(){
+  var slug=window.location.hash.replace('#','');
+  if(slug){
+    openBySlug(slug);
+  } else {
+    // Hash was cleared — go back to projects list
+    if(currentPage==='detail') goTo('projects');
   }
 });
 </script></body></html>
